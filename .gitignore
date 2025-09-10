@@ -1,0 +1,18 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+
+# Other
+*.log
+*.cache
+*.sqlite
+[Tt]emp/
+*.tmp
+*.bak
