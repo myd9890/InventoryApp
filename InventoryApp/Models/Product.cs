@@ -13,6 +13,6 @@ namespace InventoryApp.Models
         [Required(ErrorMessage = "Stock quantity is required.")]
         public required int Quantity { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; }
     }
 }
