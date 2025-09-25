@@ -1,101 +1,4 @@
-﻿@* @model InventoryApp.ViewModels.ReportViewModel
-
-@{
-    ViewData["Title"] = "Inventory Report";
-}
-
-<h2>Inventory Report</h2>
-
-<!-- Date filter -->
-<form method="get" asp-action="Inventory" class="mb-3">
-    <div class="row g-2">
-        <div class="col-md-3">
-            <input type="date" name="from" class="form-control" />
-        </div>
-        <div class="col-md-3">
-            <input type="date" name="to" class="form-control" />
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary">Filter</button>
-        </div>
-        <div class="col-md-2">
-            <a asp-action="InventoryCsv" class="btn btn-success">Export CSV</a>
-        </div>
-    </div>
-</form>
-
-<!-- KPIs -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h5>Total Products</h5>
-                <h3>@Model.TotalProducts</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h5>Total Quantity</h5>
-                <h3>@Model.TotalQuantity</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h5>Total Value</h5>
-                <h3>@Model.TotalInventoryValue.ToString("C")</h3>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Top 5 by Value -->
-<h4>Top 5 Products by Value</h4>
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Quantity</th>
-            <th>Line Value</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model.Top5ByValue)
-        {
-            <tr>
-                <td>@item.Name</td>
-                <td>@item.Quantity</td>
-                <td>@item.LineValue.ToString("C")</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<!-- Low Stock -->
-<h4>Low Stock Items (Qty < 5)</h4>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Quantity</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model.LowStockItems)
-        {
-            <tr>
-                <td>@item.Name</td>
-                <td>@item.Quantity</td>
-            </tr>
-        }
-    </tbody>
-</table> *@
-
-
-@model InventoryApp.ViewModels.ReportViewModel
+﻿@model InventoryApp.ViewModels.ReportViewModel
 
 @{
     ViewData["Title"] = "Inventory Report";
@@ -107,32 +10,48 @@
             <div class="card border-0 shadow-lg">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top">
                     <h2 class="mb-0">Inventory Report</h2>
-                    <a asp-action="InventoryCsv" class="btn btn-success">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
-                    </a>
                 </div>
                 <div class="card-body bg-light">
                     <!-- Date filter -->
-                    <form method="get" asp-action="Inventory" class="mb-4">
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold" for="from">From</label>
-                                <input type="date" name="from" id="from" class="form-control" />
+                    <form method="get" asp-action="Inventory" class="mb-3" id="reportForm">
+                        @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0 && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+                        {
+                            <div asp-validation-summary="All" class="alert alert-danger"></div>
+                        }
+                        
+                        @if (TempData["ErrorMessage"] != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @TempData["ErrorMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold" for="to">To</label>
-                                <input type="date" name="to" id="to" class="form-control" />
+                        }
+                        
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <input type="date" name="from" value="@ViewContext.HttpContext.Request.Query["from"]" class="form-control" required max="@DateTime.Now.ToString("yyyy-MM-dd")" oninput="setCustomValidity('')" />
                             </div>
-                            <div class="col-md-4 d-flex gap-2">
-                                <button type="submit" class="btn btn-primary flex-fill">
-                                    <i class="bi bi-funnel"></i> Filter
-                                </button>
-                                <a asp-action="InventoryCsv" class="btn btn-outline-success flex-fill">
-                                    <i class="bi bi-download"></i> CSV
-                                </a>
+                            <div class="col-md-3">
+                                <input type="date" name="to" value="@ViewContext.HttpContext.Request.Query["to"]" class="form-control" required max="@DateTime.Now.ToString("yyyy-MM-dd")" oninput="setCustomValidity('')" />
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-success" onclick="exportCsv()">Export CSV</button>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-secondary" formnovalidate onclick="clearDateFilters()">Clear Filters</button>
                             </div>
                         </div>
                     </form>
+
+                    @if (Model.TotalProducts == 0)
+                    {
+                        <div class="alert alert-warning text-center my-4">
+                            No products found for the given date range.
+                        </div>
+                    }
 
                     <!-- KPIs -->
                     <div class="row mb-4 g-3">
@@ -199,7 +118,7 @@
 
                     <!-- Low Stock -->
                     <div>
-                        <h4 class="fw-bold text-danger">Low Stock Items (Qty &lt; 5)</h4>
+                        <h4 class="fw-bold text-danger">Low Stock Items</h4>
                         <div class="table-responsive">
                             <table class="table table-striped table-hover align-middle mb-0">
                                 <thead class="table-danger">
@@ -225,3 +144,30 @@
         </div>
     </div>
 </div>
+
+<script>
+    function clearDateFilters() {
+        var fromInput = document.querySelector('input[name="from"]');
+        var toInput = document.querySelector('input[name="to"]');
+        fromInput.value = '';
+        toInput.value = '';
+        // The button will submit the form, so no need to call form.submit()
+    }
+
+    function exportCsv() {
+        var form = document.getElementById('reportForm');
+        var from = form.querySelector('input[name="from"]').value;
+        var to = form.querySelector('input[name="to"]').value;
+        
+        // Client-side validation for better UX
+        if (!from || !to) {
+            alert('Please select both From and To dates before exporting.');
+            return;
+        }
+        
+        var url = '/Reports/InventoryCsv?';
+        if (from) url += 'from=' + encodeURIComponent(from) + '&';
+        if (to) url += 'to=' + encodeURIComponent(to);
+        window.location.href = url;
+    }
+</script>

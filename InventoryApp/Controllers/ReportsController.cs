@@ -18,11 +18,20 @@ namespace InventoryApp.Controllers
         // /Reports/Inventory?from=&to=
         public async Task<IActionResult> Inventory(DateTime? from, DateTime? to)
         {
-            var query = _context.Products.AsQueryable();
+            // Validate start date is not after end date
+            if (from.HasValue && to.HasValue && from.Value.Date > to.Value.Date)
+            {
+                ModelState.AddModelError(string.Empty, "Start date must be earlier than or equal to end date.");
+                return View(new ReportViewModel
+                {
+                    Top5ByValue = new List<ProductReportDto>(),
+                    LowStockItems = new List<ProductReportDto>()
+                });
+            }
 
+            var query = _context.Products.AsQueryable();
             if (from.HasValue)
                 query = query.Where(p => p.CreatedAt >= from.Value);
-
             if (to.HasValue)
                 query = query.Where(p => p.CreatedAt <= to.Value);
 
@@ -60,23 +69,32 @@ namespace InventoryApp.Controllers
         // /Reports/InventoryCsv
         public async Task<IActionResult> InventoryCsv(DateTime? from, DateTime? to)
         {
-            var query = _context.Products.AsQueryable();
+            // Require both dates since frontend form requires them
+            if (!from.HasValue || !to.HasValue)
+            {
+                TempData["ErrorMessage"] = "Both from and to dates are required for CSV export.";
+                return RedirectToAction(nameof(Inventory), new { from, to });
+            }
 
-            if (from.HasValue)
-                query = query.Where(p => p.CreatedAt >= from.Value);
+            // Validate start date is not after end date
+            if (from.Value.Date > to.Value.Date)
+            {
+                TempData["ErrorMessage"] = "Start date must be earlier than or equal to end date.";
+                return RedirectToAction(nameof(Inventory), new { from, to });
+            }
 
-            if (to.HasValue)
-                query = query.Where(p => p.CreatedAt <= to.Value);
-
-            var products = await query.ToListAsync();
-
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine("Id,Name,Price,Quantity,CreatedAt,LineValue");
+
+            // Apply date range filter - only products within the specified range
+            var products = await _context.Products
+                .Where(p => p.CreatedAt >= from.Value && p.CreatedAt <= to.Value)
+                .ToListAsync();
 
             foreach (var p in products)
             {
                 var lineValue = p.Price * p.Quantity;
-                sb.AppendLine($"{p.Id},{p.Name},{p.Price},{p.Quantity},{p.CreatedAt},{lineValue}");
+                sb.AppendLine($"{p.Id},{p.Name},{p.Price},{p.Quantity},{p.CreatedAt:yyyy-MM-dd},{lineValue}");
             }
 
             return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", "InventoryReport.csv");

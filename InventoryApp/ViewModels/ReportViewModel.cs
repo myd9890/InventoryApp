@@ -8,7 +8,7 @@
         public required List<ProductReportDto> Top5ByValue { get; set; }
         
         public required List<ProductReportDto> LowStockItems { get; set; }
-
+        public string? ErrorMessage { get; set; }
     }
 
     public class ProductReportDto
