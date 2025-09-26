@@ -41,7 +41,7 @@ This README is developer-focused and provides setup instructions, dependencies, 
 ## Installation
 Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/myd9890/InventoryApp.git
 cd InventoryApp
 ```
 
